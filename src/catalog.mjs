@@ -59,3 +59,10 @@ export const DEFAULT_NEUTRAL_QUESTIONS = Object.freeze([
   '¿Qué habilidad fuera del trabajo te gustaría aprender?',
   '¿Qué plan recomendarías para un fin de semana en tu ciudad?',
 ]);
+
+// Dated facts from a profile (attended, spoke, launched…). The sniper turns them into
+// narrative icebreakers ("vi que estuviste en … la semana pasada, ¿qué tal fue?").
+export const FACT_KINDS = Object.freeze({
+  event: 'Asistió a un evento', talk: 'Dio una charla', achievement: 'Lanzamiento o logro', trip: 'Viaje', article: 'Escribió un artículo',
+});
+export const POST_KINDS = Object.freeze({ post: 'Publicación', repost: 'Republicación', ...FACT_KINDS });

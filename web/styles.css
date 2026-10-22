@@ -24,3 +24,17 @@
 .sources{margin:6px 0 0;padding-left:18px;font-size:11px;color:var(--muted)}
 #resolve-form{margin:12px 0}#resolve-form .btn{margin-top:8px}
 @media(max-width:760px){.page-heading{flex-direction:column}.inbox-row{grid-template-columns:36px 1fr}.inbox-matches{grid-column:1/-1}}
+
+/* v0.3 · conexión explicada, vista previa y fotos */
+img.avatar.photo{object-fit:cover;padding:0;background:#fff}
+.who{display:flex;gap:12px;align-items:center;margin:6px 0 10px}.who h3{margin:0}.who p{margin:2px 0 0}
+.person-card img.avatar.photo{width:45px;height:45px;border:0;margin:0 0 10px}
+.motive{font-size:12px;line-height:1.55;margin:8px 0;padding:8px 10px;border-radius:10px;background:#f4f8f3}.motive b{display:block;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--green);margin-bottom:2px}
+.topics.compact>li{font-size:12px;padding-left:10px;border-left:2px solid #dfe6dc}
+.pending{color:#966020;font-size:12px;font-style:italic}
+.mail{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fcfdf9}
+.mail-head{display:grid;gap:3px;padding:14px 18px;border-bottom:1px solid var(--line);background:white}
+.mail-body{padding:18px;font-size:13px}.mail-body>p{margin:0 0 12px}
+.mail-card{background:white;border:1px solid var(--line);border-radius:14px;padding:16px;margin:0 0 14px}
+.fact-row{display:grid;grid-template-columns:130px 1.2fr 130px 1.5fr;gap:6px;margin-bottom:6px}.fact-row input,.fact-row select{border:1px solid #d5dfd5;border-radius:8px;padding:8px;font-size:11px;width:100%;background:white}
+@media(max-width:760px){.fact-row{grid-template-columns:1fr 1fr}}

@@ -1,8 +1,8 @@
 // "Extractor" step: turns a participant's public posts into structured, dated evidence.
 // Posts are untrusted data: instructions inside them are flagged and never followed,
 // and posts with sensitive identifiers or past the max age are not usable as evidence.
-import { INTEREST_KEYWORDS } from './catalog.mjs';
-import { censor, hasUnsafeInstruction, fold } from './safety.mjs';
+import { INTEREST_KEYWORDS, FACT_KINDS } from './catalog.mjs';
+import { censor, hasUnsafeInstruction, findContactData, fold } from './safety.mjs';
 
 const daysBetween = (from, to) => Math.floor((to - new Date(from + 'T12:00:00Z')) / 864e5);
 const keywordRe = Object.fromEntries(Object.entries(INTEREST_KEYWORDS).map(([k, words]) =>
@@ -17,15 +17,18 @@ export function analyzePosts(participant, { now = new Date(), maxPostAgeDays = 1
   const posts = (participant.posts ?? []).map(post => {
     const flags = [];
     const safe = censor(post.text);
-    if (hasUnsafeInstruction(post.text)) flags.push('INJECTION');
-    if (safe.blocked) flags.push('SENSITIVE_ID');
+    const title = typeof post.title === 'string' ? post.title.trim() : '';
+    if (hasUnsafeInstruction(post.text + ' ' + title)) flags.push('INJECTION');
+    if (safe.blocked || censor(title).blocked) flags.push('SENSITIVE_ID');
     const age = daysBetween(post.date, now);
     if (age > maxPostAgeDays) flags.push('STALE');
     // A post with an injection attempt is quarantined entirely; sensitive IDs are masked
     // and the post can still back a topic, but its text is never quoted.
     const topics = flags.includes('INJECTION') ? [] : detectTopics(safe.text);
-    return { id: post.id, kind: post.kind, date: post.date, ageDays: age, topics, flags,
-      usable: !flags.includes('INJECTION') && !flags.includes('STALE') && topics.length > 0,
+    // A fact's title is quoted verbatim in the email, so it must be short and spotless.
+    const narrative = Object.hasOwn(FACT_KINDS, post.kind) && title.length > 2 && title.length <= 90 && flags.length === 0 && !findContactData(title).length;
+    return { id: post.id, kind: post.kind, date: post.date, ageDays: age, topics, flags, narrative, title: narrative ? title : null,
+      usable: !flags.includes('INJECTION') && !flags.includes('STALE') && (topics.length > 0 || narrative),
       quotable: flags.length === 0, snippet: safe.text.length > 110 ? safe.text.slice(0, 107) + '…' : safe.text };
   });
   const interests = [...new Set(posts.filter(p => p.usable).flatMap(p => p.topics))].sort();
@@ -33,7 +36,7 @@ export function analyzePosts(participant, { now = new Date(), maxPostAgeDays = 1
   if (posts.some(p => p.flags.includes('INJECTION'))) warnings.push({ code: 'INJECTION_ATTEMPT', participantId: participant.id, message: 'Publicación con instrucciones maliciosas: aislada y sin ejecutar.' });
   if (posts.some(p => p.flags.includes('SENSITIVE_ID'))) warnings.push({ code: 'SENSITIVE_ID_IN_SOURCE', participantId: participant.id, message: 'Publicación con identificador sensible: enmascarado, nunca se cita.' });
   if (posts.some(p => p.flags.includes('STALE'))) warnings.push({ code: 'STALE_SOURCE', participantId: participant.id, message: 'Publicaciones antiguas ignoradas (más de ' + maxPostAgeDays + ' días).' });
-  if (!posts.length) warnings.push({ code: 'NO_SOURCES', participantId: participant.id, message: 'Sin publicaciones: solo preguntas neutrales.' });
+  if (!posts.length) warnings.push({ code: 'NO_SOURCES', participantId: participant.id, message: 'Sin publicaciones ni hechos: sus icebreakers quedan pendientes de datos.' });
   // Missing posts means "unknown", never "no interests": null keeps it out of the score denominator.
   return { participantId: participant.id, posts, interests: interests.length ? interests : null, warnings };
 }

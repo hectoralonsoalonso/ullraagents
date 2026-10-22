@@ -4,7 +4,10 @@
 //  - hard checks: data safety / wrong people / stale state → must regenerate, cannot be overridden
 //  - soft checks: things a human can judge (fewer than 3 matches, manual edits) → "Resolver incidencia"
 import { parseEmail } from './composer.mjs';
-import { censor, hasUnsafeInstruction, findContactData } from './safety.mjs';
+import { censor, hasUnsafeInstruction, findContactData, fold } from './safety.mjs';
+
+const norm = (t, name) => fold(t).replace(name ? new RegExp(fold(name), 'g') : /$^/, '').replace(/\(fuente:[^)]*\)/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+const intersect = (a, b) => [...new Set((a ?? []).filter(v => (b ?? []).includes(v)))].sort().join();
 
 function check(id, label, severity, problems) {
   return { id, label, severity, ok: problems.length === 0, detail: problems };
@@ -33,7 +36,7 @@ function evidenceProblems(item, byId, analyses) {
 export function reviewDraft({ draft, recipient, event, participants, analyses, rules, currentTop, hasContact }) {
   const byId = new Map(participants.map(p => [p.id, p]));
   const text = draft.content;
-  const blocks = parseEmail(text);
+  const { blocks } = parseEmail(text);
   const expected = draft.items;
   const checks = [];
 
@@ -66,13 +69,50 @@ export function reviewDraft({ draft, recipient, event, participants, analyses, r
 
   const qty = [];
   blocks.forEach((b, i) => {
-    if (b.off.length !== rules.offTopicCount) qty.push(`Bloque ${i + 1}: ${b.off.length} temas off-topic (se esperaban ${rules.offTopicCount})`);
-    if (b.on.length !== rules.onTopicCount) qty.push(`Bloque ${i + 1}: ${b.on.length} temas on-topic (se esperaban ${rules.onTopicCount})`);
+    const it = expected[i];
+    if (!it) return;
+    if (b.off.length !== it.off.length) qty.push(`Bloque ${i + 1}: ${b.off.length} icebreakers en el texto; el sniper preparó ${it.off.length}`);
+    if (b.on.length !== it.on.length) qty.push(`Bloque ${i + 1}: ${b.on.length} temas de negocio en el texto; el sniper preparó ${it.on.length}`);
   });
-  checks.push(check('quantities', `${rules.offTopicCount} off-topic y ${rules.onTopicCount} on-topic por persona`, 'hard', qty));
+  checks.push(check('quantities', 'El texto conserva todos los temas preparados', 'hard', qty));
+
+  const missing = expected.flatMap(it => [
+    ...(it.missingOff ? [`${it.name}: faltan ${it.missingOff} de ${rules.offTopicCount} icebreakers con fuente (aporta hechos o publicaciones, o aprueba con menos)`] : []),
+    ...(it.missingOn ? [`${it.name}: faltan ${it.missingOn} de ${rules.onTopicCount} temas de negocio con fundamento`] : []),
+  ]);
+  checks.push(check('sourced', `${rules.offTopicCount} icebreakers y ${rules.onTopicCount} temas de negocio con fuente por persona`, 'soft', missing));
+
+  // Quantity is not enough: the same question twice, or the same post reused, is a defect.
+  const variety = [];
+  blocks.forEach((b, i) => {
+    const first = byId.get(expected[i]?.candidateId)?.firstName;
+    for (const list of [b.off, b.on]) {
+      const seen = new Set();
+      for (const t of list) { const n = norm(t, first); if (seen.has(n)) variety.push(`Bloque ${i + 1}: tema repetido «${t.slice(0, 70)}…»`); seen.add(n); }
+    }
+  });
+  expected.forEach((it, i) => {
+    const posts = it.off.flatMap(t => t.evidence.filter(e => e.type === 'post' && e.participantId === it.candidateId).map(e => e.postId));
+    if (new Set(posts).size !== posts.length) variety.push(`Bloque ${i + 1}: la misma publicación respalda dos icebreakers`);
+    if (!rules.allowNeutralFallback && [...it.off, ...it.on].some(t => t.kind === 'neutral')) variety.push(`Bloque ${i + 1}: pregunta genérica sin fuente (desactivadas en Criterios)`);
+  });
+  checks.push(check('variety', 'Temas distintos y sin preguntas genéricas', 'hard', variety));
+  const across = new Map();
+  blocks.forEach((b, i) => { const first = byId.get(expected[i]?.candidateId)?.firstName; for (const t of b.off) { const n = norm(t, first); across.set(n, [...(across.get(n) ?? []), i + 1]); } });
+  checks.push(check('variety-across', 'Icebreakers distintos entre personas', 'soft',
+    [...across].filter(([, v]) => v.length > 1).map(([n, v]) => `El mismo icebreaker aparece en los bloques ${v.join(' y ')}`)));
+
+  const motive = [];
+  expected.forEach((it, i) => {
+    const q = byId.get(it.candidateId);
+    if (!q || !recipient) return;
+    if ((it.givesYou?.tags ?? []).slice().sort().join() !== intersect(q.offers, recipient.needs)) motive.push(`Bloque ${i + 1}: «Qué te aporta» no coincide con su oferta y tus necesidades`);
+    if ((it.youGive?.tags ?? []).slice().sort().join() !== intersect(recipient.offers, q.needs)) motive.push(`Bloque ${i + 1}: «Qué puedes aportarle» no coincide con tu oferta y sus necesidades`);
+  });
+  checks.push(check('motives', 'Motivos del match en ambas direcciones respaldados', 'hard', motive));
 
   checks.push(check('evidence', 'Cada afirmación personal tiene fuente válida', 'hard',
-    expected.flatMap(it => [...it.off, ...it.on].flatMap(item => evidenceProblems(item, byId, analyses)))));
+    expected.flatMap(it => [...it.off, ...it.on, ...[it.givesYou, it.youGive].filter(Boolean).map(m => ({ ...m, kind: 'motive' }))].flatMap(item => evidenceProblems(item, byId, analyses)))));
 
   const generated = new Set(draft.generatedContent.split(/\r?\n/).map(l => l.trim()));
   const changed = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !generated.has(l));
@@ -86,7 +126,7 @@ export function reviewDraft({ draft, recipient, event, participants, analyses, r
   const warnings = [recipient?.id, ...draft.matches.map(m => m.candidateId)]
     .flatMap(id => (analyses.get(id)?.warnings ?? []).map(w => ({ ...w, person: byId.get(id)?.name })));
   const neutral = expected.reduce((n, it) => n + it.off.filter(t => t.kind === 'neutral').length, 0);
-  if (neutral) warnings.push({ code: 'NEUTRAL_FALLBACK', message: `${neutral} rompehielos son preguntas abiertas por falta de publicaciones utilizables.` });
+  if (neutral) warnings.push({ code: 'NEUTRAL_FALLBACK', message: `${neutral} icebreakers son preguntas genéricas por falta de fuentes.` });
 
   const failed = checks.filter(c => !c.ok);
   return {

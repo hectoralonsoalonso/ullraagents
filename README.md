@@ -11,7 +11,7 @@ El nombre visible es **Ulltra**; el repositorio conserva su nombre `ullraagents`
 Requiere Node.js 20+ (verificado con Node 26). Sin dependencias que instalar.
 
     npm start          # o: node server.mjs
-    npm test           # 41 pruebas + verificación de documentos
+    npm test           # 46 pruebas + verificación de documentos
     npm run reset      # borra runtime-data/ y vuelve a los datos de demo
 
 Abrir http://127.0.0.1:4317. Otro puerto: `PORT=4318 npm start`. Sin persistencia: `PERSIST=0 npm start`.
@@ -29,6 +29,15 @@ El estado (borradores, revisiones, envíos simulados) se guarda en `runtime-data
 Después, vosotros: **editar** (re-revisa al guardar), **regenerar**, **resolver incidencia** (solo las revisables por una persona: menos de 3 matches o líneas editadas a mano; las de seguridad exigen regenerar) y **Enviar** (uno a uno o «Enviar todos los OK»). El envío vuelve a pasar el revisor, es idempotente (un email por persona y evento) y es SIMULADO.
 
 Cambiar criterios, dar de baja a alguien o añadir asistentes vuelve a revisar todos los borradores no enviados.
+
+## v0.3 · Conexión explicada y email previsualizable
+- **Motivos en ambas direcciones** («Qué te aporta» / «Qué puedes aportarle»), calculados solo con coincidencias reales oferta↔necesidad. Visibles en tarjetas, bandeja y email.
+- **Icebreakers con relato**: hechos con fecha (asistió a, charla, logro, viaje, artículo) → «Marcos, vi que estuviste en el congreso de IA aplicada al retail de Lisboa la semana pasada. ¿Qué tal fue?» (fuente: su publicación del …). Sin fuente, el hueco queda **pendiente** e incidencia revisable; las preguntas genéricas solo si se activan en Criterios.
+- **Vista previa del destinatario** con foto, nombre, cargo, empresa, motivos e icebreakers, construida desde el mismo texto aprobado (y la misma estructura va en la parte HTML del `.eml`).
+- **Foto opcional** aportada por la persona en el formulario (reducida a 256 px en el navegador); si no hay, iniciales. No se descarga nada de LinkedIn.
+- **Revisor**: además de cantidades, comprueba variedad (temas repetidos, misma publicación reutilizada, preguntas genéricas) y que los motivos coincidan con las fichas.
+
+Para el experimento con perfiles reales: cada persona pega en «Añadir asistente» sus hechos y publicaciones con fecha y, si quiere, su foto. La app no accede a LinkedIn.
 
 ## Datos ficticios incluidos
 Tres eventos (Madrid 10 asistentes, Bilbao 6, Valencia 3) con casos trampa a propósito: publicación con *prompt injection* (Javier Ruiz), IBAN en una publicación (Sergio Navarro), perfil sin publicaciones (Andrés Vidal), publicaciones caducadas (Carmen Iglesias), sector fuera de catálogo (Tomás Ortega), baja (Jon Arrieta) y un evento con menos de 3 candidatos (Valencia).

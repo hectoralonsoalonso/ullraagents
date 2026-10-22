@@ -4,11 +4,12 @@ import {readFileSync,writeFileSync,mkdirSync,existsSync,renameSync} from 'node:f
 import {fileURLToPath} from 'node:url';
 import {resolve,dirname,join} from 'node:path';
 import {DEFAULT_RULES,validateRules,rankCandidates} from './src/affinity.mjs';
-import {CATALOG,DEFAULT_NEUTRAL_QUESTIONS} from './src/catalog.mjs';
+import {CATALOG,DEFAULT_NEUTRAL_QUESTIONS,POST_KINDS,FACT_KINDS} from './src/catalog.mjs';
 import {makeDemoData,matchingProfile} from './src/demo-data.mjs';
 import {analyzePosts} from './src/extractor.mjs';
 import {snipe} from './src/sniper.mjs';
-import {composeEmail,subjectFor} from './src/composer.mjs';
+import {composeEmail,subjectFor,parseEmail} from './src/composer.mjs';
+import {emailHtml} from './src/email-html.mjs';
 import {reviewDraft} from './src/reviewer.mjs';
 import {censor,hasUnsafeInstruction} from './src/safety.mjs';
 const ROOT=dirname(fileURLToPath(import.meta.url));
@@ -21,9 +22,9 @@ function text(value,max=120){if(typeof value!=='string'||!value.trim()||value.le
 // Free-text answers are untrusted but legitimate input: keep them, never execute them; the sniper won't quote flagged text.
 function freeText(value,max=300){if(value==null||value==='')return '';if(typeof value!=='string'||value.length>max)throw codeError(400,'Texto demasiado largo');if(censor(value).blocked)throw codeError(400,'Quita DNI/NIE/IBAN del texto');return value.trim();}
 function choices(value,catalog,{max=12}={}){if(value==null)return [];if(!Array.isArray(value)||value.length>max||value.some(v=>typeof v!=='string'||!Object.hasOwn(catalog,v)))throw codeError(400,'Selección fuera del catálogo');return [...new Set(value)];}
-async function body(req){if(!/^application\/json(?:;|$)/i.test(req.headers['content-type']??''))throw codeError(415,'Usa JSON');let bytes=0,chunks=[];for await(const chunk of req){bytes+=chunk.length;if(bytes>24000)throw codeError(413,'Entrada demasiado grande');chunks.push(chunk);}try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw codeError(400,'JSON inválido');}}
+async function body(req,limit=24000){if(!/^application\/json(?:;|$)/i.test(req.headers['content-type']??''))throw codeError(415,'Usa JSON');let bytes=0,chunks=[];for await(const chunk of req){bytes+=chunk.length;if(bytes>limit)throw codeError(413,'Entrada demasiado grande');chunks.push(chunk);}try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw codeError(400,'JSON inválido');}}
 const dayBefore=date=>{const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-1);return d.toISOString().slice(0,10);};
-const defaultRules=()=>({...structuredClone(DEFAULT_RULES),offTopicCount:3,onTopicCount:2,maxPostAgeDays:180,neutralQuestions:[...DEFAULT_NEUTRAL_QUESTIONS]});
+const defaultRules=()=>({...structuredClone(DEFAULT_RULES),offTopicCount:3,onTopicCount:2,maxPostAgeDays:180,allowNeutralFallback:false,neutralQuestions:[...DEFAULT_NEUTRAL_QUESTIONS]});
 
 export function createApp({persist=false,dataDir=resolve(ROOT,'runtime-data')}={}){
  const stateFile=join(dataDir,'state.json'),outboxDir=join(dataDir,'outbox');
@@ -31,7 +32,7 @@ export function createApp({persist=false,dataDir=resolve(ROOT,'runtime-data')}={
  function fresh(){const d=makeDemoData();return {...d,rules:defaultRules(),ruleSerial:0,drafts:new Map(),deliveries:new Map()};}
  function load(){
   if(!persist||!existsSync(stateFile))return fresh();
-  try{const s=JSON.parse(readFileSync(stateFile,'utf8'));return {events:s.events,participants:s.participants,contacts:new Map(s.contacts),rules:s.rules,ruleSerial:s.ruleSerial,drafts:new Map(s.drafts.map(d=>[d.id,d])),deliveries:new Map(s.deliveries)};}
+  try{const s=JSON.parse(readFileSync(stateFile,'utf8'));return {events:s.events,participants:s.participants,contacts:new Map(s.contacts),rules:{allowNeutralFallback:false,...s.rules},ruleSerial:s.ruleSerial,drafts:new Map(s.drafts.map(d=>[d.id,d])),deliveries:new Map(s.deliveries)};}
   catch{return fresh();}
  }
  function save(){
@@ -62,7 +63,8 @@ export function createApp({persist=false,dataDir=resolve(ROOT,'runtime-data')}={
  }
  function buildDraft(p){
   const event=eventOf(p.eventId),result=rank(p.id),anA=analyze(p);
-  const items=result.matches.map(m=>{const q=participant(m.candidateId),s=snipe(p,q,anA,analyze(q),state.rules);return {candidateId:q.id,name:q.name,firstName:q.firstName,role:q.role,company:q.company,score:m.score,coverage:m.coverage,reason:s.reason,off:s.off,on:s.on};});
+  const avoidTopics=new Set();
+  const items=result.matches.map(m=>{const q=participant(m.candidateId);return {candidateId:q.id,name:q.name,firstName:q.firstName,role:q.role,company:q.company,score:m.score,coverage:m.coverage,...snipe(p,q,anA,analyze(q),state.rules,{avoidTopics})};});
   const raw=composeEmail(p,event,items),filtered=censor(raw);
   const d={id:randomUUID(),participantId:p.id,eventId:p.eventId,recipientName:p.name,recipientCompany:p.company,revision:1,rulesVersion:state.rules.version,
    matches:result.matches.map(({candidateId,score,coverage,components})=>({candidateId,score,coverage,components})),items,subject:subjectFor(event,items.length),
@@ -77,7 +79,13 @@ export function createApp({persist=false,dataDir=resolve(ROOT,'runtime-data')}={
  function summary(d){return {id:d.id,participantId:d.participantId,recipientName:d.recipientName,recipientCompany:d.recipientCompany,status:statusOf(d),matches:d.items.map(i=>({candidateId:i.candidateId,name:i.name,company:i.company})),
   firstIssue:d.review?.checks.find(c=>!c.ok)?.detail[0]??null,warnings:d.review?.warnings.length??0,scheduledFor:d.scheduledFor,revision:d.revision};}
  function publicDraft(d){const {generatedContent,...rest}=d;return {...rest,status:statusOf(d),edited:d.content!==generatedContent};}
- function publicParticipant(p){const a=analyze(p);const {posts,...rest}=p;return {...rest,interests:a.interests??[],posts:a.posts.map(({id,kind,date,topics,flags,usable,snippet})=>({id,kind,date,topics,flags,usable,snippet}))};}
+ function publicParticipant(p){const a=analyze(p);const {posts,...rest}=p;return {...rest,interests:a.interests??[],posts:a.posts.map(({id,kind,date,topics,flags,usable,narrative,title,snippet})=>({id,kind,date,topics,flags,usable,narrative,title,snippet}))};}
+ // Preview = parsed approved text + photos of the people named in it. Nothing is regenerated.
+ function preview(d){
+  const parsed=parseEmail(d.content),photoOf=id=>participant(id)?.photo??null;
+  return {subject:d.subject,preamble:parsed.preamble,closing:parsed.closing,revision:d.revision,
+   blocks:parsed.blocks.map((b,i)=>{const it=d.items[i];const same=it&&it.name===b.name;return {...b,candidateId:same?it.candidateId:null,photo:same?photoOf(it.candidateId):null};})};
+ }
  function sendDraft(d){
   const key=d.eventId+':'+d.participantId;
   if(state.deliveries.has(key))return {receipt:state.deliveries.get(key),duplicate:true};
@@ -87,7 +95,9 @@ export function createApp({persist=false,dataDir=resolve(ROOT,'runtime-data')}={
   if(fresh.status!=='ok'&&!humanOk){d.review=fresh;log(d,'send-blocked',fresh.checks.filter(c=>!c.ok).map(c=>c.label).join('; '));save();throw codeError(409,'Bloqueado: la revisión ya no es OK. No se ha enviado nada.',{draft:publicDraft(d)});}
   const contact=state.contacts.get(d.participantId);
   const receipt={id:randomUUID(),key,mode:'SIMULATED_ONLY',realEmail:false,date:new Date().toISOString(),revision:d.revision,file:persist?'runtime-data/outbox/'+d.participantId+'.eml':null};
-  const eml=['From: Equipo organizador <eventos@example.test>','To: '+contact.email,'Subject: '+d.subject,'Date: '+new Date().toUTCString(),'X-Demo: SIMULATED - no SMTP','Content-Type: text/plain; charset=utf-8','',d.content,''].join('\r\n');
+  const boundary='ulltra-'+randomBytes(8).toString('hex');
+  const eml=['From: Equipo organizador <eventos@example.test>','To: '+contact.email,'Subject: '+d.subject,'Date: '+new Date().toUTCString(),'X-Demo: SIMULATED - no SMTP','MIME-Version: 1.0','Content-Type: multipart/alternative; boundary="'+boundary+'"','',
+   '--'+boundary,'Content-Type: text/plain; charset=utf-8','',d.content,'','--'+boundary,'Content-Type: text/html; charset=utf-8','',emailHtml(preview(d)),'','--'+boundary+'--',''].join('\r\n');
   if(persist){mkdirSync(outboxDir,{recursive:true});writeFileSync(join(outboxDir,d.participantId+'.eml'),eml);}else outboxMemory.set(receipt.id,eml);
   state.deliveries.set(key,receipt);d.delivery=receipt;log(d,'sent','Envío simulado (sin SMTP)');
   return {receipt,duplicate:false};
@@ -119,20 +129,35 @@ export function createApp({persist=false,dataDir=resolve(ROOT,'runtime-data')}={
    if(!['GET','POST','PATCH'].includes(req.method))throw codeError(405,'Método no permitido');
    if(req.method!=='GET'&&(!safeEqual(req.headers['x-csrf-token'],session.csrf)||req.headers.origin!==origin))throw codeError(403,'Autorización local/CSRF no válida');
    let m;
-   if(req.method==='GET'&&path==='/api/matches')return send(200,rank(url.searchParams.get('participantId')));
+   if(req.method==='GET'&&path==='/api/matches'){
+    const p=participant(url.searchParams.get('participantId')),r=rank(p?.id),anA=analyze(p),avoidTopics=new Set();
+    return send(200,{...r,matches:r.matches.map(m=>{const q=participant(m.candidateId);return {...m,name:q.name,photo:q.photo,...snipe(p,q,anA,analyze(q),state.rules,{avoidTopics})};})});
+   }
    if(req.method==='POST'&&path==='/api/participants'){
-    const b=await body(req);onlyKeys(b,['eventId','firstName','lastName','role','company','linkedinUrl','sector','companyType','offerText','needText','offers','needs','buyerTypes','buyerSectors','posts','email']);
+    const b=await body(req,600000);onlyKeys(b,['eventId','firstName','lastName','role','company','linkedinUrl','sector','companyType','offerText','needText','offers','needs','buyerTypes','buyerSectors','posts','photo','email']);
     if(!eventOf(b.eventId))throw codeError(400,'Evento no válido');if(state.participants.length>=300)throw codeError(400,'Límite de la demo');
     if(!Object.hasOwn(CATALOG.companyTypes,b.companyType))throw codeError(400,'Tipo de empresa fuera de catálogo');
     // Outside the client's sector list → "Sin clasificar", never a new category.
     const sector=Object.hasOwn(CATALOG.sectors,b.sector)?b.sector:'unclassified';
     if(b.linkedinUrl&&(typeof b.linkedinUrl!=='string'||!/^https:\/\/(?:www\.)?linkedin\.(?:com|example)\/in\/[A-Za-z0-9_-]{3,100}\/?$/.test(b.linkedinUrl)))throw codeError(400,'URL de LinkedIn no válida');
-    if(b.posts!=null&&(!Array.isArray(b.posts)||b.posts.length>5||b.posts.some(t=>typeof t!=='string'||!t.trim()||t.length>500)))throw codeError(400,'Hasta 5 publicaciones de 500 caracteres');
+    // Posts/facts are untrusted content pasted by the participant: validated for shape, flagged (never rejected) for injection.
+    if(b.posts!=null&&(!Array.isArray(b.posts)||b.posts.length>8))throw codeError(400,'Hasta 8 publicaciones o hechos');
+    const today=new Date().toISOString().slice(0,10);
+    const posts=(b.posts??[]).map(x=>typeof x==='string'?{kind:'post',text:x,date:today}:x).map(x=>{
+     if(!x||typeof x!=='object'||Array.isArray(x)||Object.keys(x).some(k=>!['kind','title','date','text'].includes(k)))throw codeError(400,'Publicación con campos no permitidos');
+     if(!Object.hasOwn(POST_KINDS,x.kind??'post'))throw codeError(400,'Tipo de publicación no válido');
+     const date=x.date??today;if(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(Date.parse(date))||date>today)throw codeError(400,'Fecha de publicación no válida');
+     const text=typeof x.text==='string'?x.text.trim():'',title=typeof x.title==='string'?x.title.trim():'';
+     if(text.length>500||title.length>90||(!text&&!title))throw codeError(400,'Publicación vacía o demasiado larga');
+     if(Object.hasOwn(FACT_KINDS,x.kind)&&!title)throw codeError(400,'Los hechos necesitan un título breve (p. ej. «el congreso de IA de Lisboa»)');
+     return {kind:x.kind??'post',date,text:text||title,...(title?{title}:{})};});
+    // Photo: only an image the participant provides, as a small data URL. Never fetched from LinkedIn.
+    if(b.photo!=null&&(typeof b.photo!=='string'||b.photo.length>400000||!/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(b.photo)))throw codeError(400,'Foto no válida (PNG/JPEG/WebP, máx. ~300 KB)');
     const email=b.email;if(typeof email!=='string'||email.length>150||!/^[a-z0-9._+-]+@example\.test$/i.test(email))throw codeError(400,'Solo correos ficticios @example.test');
-    const id='demo-user-'+randomUUID().slice(0,8),firstName=text(b.firstName),lastName=text(b.lastName),today=new Date().toISOString().slice(0,10);
+    const id='demo-user-'+randomUUID().slice(0,8),firstName=text(b.firstName),lastName=text(b.lastName);
     const p={id,eventId:b.eventId,status:'active',synthetic:true,firstName,lastName,name:firstName+' '+lastName,role:text(b.role),company:text(b.company),linkedinUrl:b.linkedinUrl||null,sector,companyType:b.companyType,
      offerText:freeText(b.offerText),needText:freeText(b.needText),offers:choices(b.offers,CATALOG.tags),needs:choices(b.needs,CATALOG.tags),buyerTypes:choices(b.buyerTypes,CATALOG.companyTypes),
-     buyerSectors:choices(b.buyerSectors,CATALOG.sectors,{max:20}),posts:(b.posts??[]).map((t,i)=>({id:id+'-post-'+(i+1),kind:'post',date:today,text:t.trim()}))};
+     buyerSectors:choices(b.buyerSectors,CATALOG.sectors,{max:20}),posts:posts.map((x,i)=>({id:id+'-post-'+(i+1),...x})),photo:b.photo??null,photoSource:b.photo?'Aportada por el participante':null};
     if(!p.buyerSectors.length)delete p.buyerSectors;
     state.participants.push(p);state.contacts.set(id,{email});rereview(p.eventId);save();return send(201,{participant:publicParticipant(p)});
    }
@@ -147,10 +172,11 @@ export function createApp({persist=false,dataDir=resolve(ROOT,'runtime-data')}={
     const e={id:'demo-event-'+randomUUID().slice(0,8),name:text(b.name),city:text(b.city),date:b.date,time,timezone:'Europe/Madrid'};state.events.push(e);save();return send(201,{event:e});
    }
    if(req.method==='POST'&&path==='/api/rules'){
-    const b=await body(req);onlyKeys(b,['weights','minScore','minCoverage','offTopicCount','onTopicCount','maxPostAgeDays','neutralQuestions']);
+    const b=await body(req);onlyKeys(b,['weights','minScore','minCoverage','offTopicCount','onTopicCount','maxPostAgeDays','allowNeutralFallback','neutralQuestions']);
     const next={...state.rules,...b,version:'0.2.0-demo.'+(state.ruleSerial+1)};try{validateRules(next);}catch{throw codeError(400,'Pesos no negativos deben sumar 100; umbrales entre 0 y 100');}
     for(const k of ['offTopicCount','onTopicCount'])if(!Number.isInteger(next[k])||next[k]<1||next[k]>5)throw codeError(400,'Entre 1 y 5 temas por tipo');
     if(!Number.isInteger(next.maxPostAgeDays)||next.maxPostAgeDays<7||next.maxPostAgeDays>730)throw codeError(400,'Antigüedad máxima entre 7 y 730 días');
+    if(typeof next.allowNeutralFallback!=='boolean')throw codeError(400,'allowNeutralFallback debe ser verdadero o falso');
     if(!Array.isArray(next.neutralQuestions)||next.neutralQuestions.length<3||next.neutralQuestions.length>15)throw codeError(400,'Entre 3 y 15 preguntas neutrales');
     next.neutralQuestions=next.neutralQuestions.map(q=>text(q,160));
     state.ruleSerial++;state.rules=next;rereview();save();return send(200,{rules:state.rules});
@@ -180,10 +206,11 @@ export function createApp({persist=false,dataDir=resolve(ROOT,'runtime-data')}={
     const d=buildDraft(p);save();return send(201,{draft:publicDraft(d)});
    }
    if(req.method==='POST'&&path==='/api/reset'){const b=await body(req);onlyKeys(b,['confirm']);if(b.confirm!==true)throw codeError(400,'Confirma el reinicio');state=fresh();outboxMemory.clear();save();return send(200,{ok:true});}
-   const route=path.match(/^\/api\/drafts\/([a-f0-9-]+)(?:\/(review|resolve|send|eml))?$/);
+   const route=path.match(/^\/api\/drafts\/([a-f0-9-]+)(?:\/(review|resolve|send|eml|preview))?$/);
    if(route){
     const d=state.drafts.get(route[1]);if(!d)throw codeError(404,'Borrador no encontrado');
     if(req.method==='GET'&&!route[2])return send(200,{draft:publicDraft(d)});
+    if(req.method==='GET'&&route[2]==='preview')return send(200,{preview:preview(d)});
     if(req.method==='GET'&&route[2]==='eml'){if(!d.delivery)throw codeError(404,'Sin envío');const eml=persist?readFileSync(join(outboxDir,d.participantId+'.eml'),'utf8'):outboxMemory.get(d.delivery.id);
      // The recipient address is resolved only by the sending service; the UI gets it masked.
      return send(200,{eml:eml.replace(/^To: .*$/m,'To: [contacto aislado @example.test]')});}
