@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {request} from 'node:http';
+import {readFileSync} from 'node:fs';
 import {createApp} from '../server.mjs';
 import {censor} from '../src/safety.mjs';
 async function withApp(fn){const {server}=createApp();await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+server.address().port;const boot=await fetch(base+'/api/bootstrap');const data=await boot.json(),cookie=boot.headers.get('set-cookie').split(';')[0];const ctx={base,server,data,cookie,async call(path,method='GET',body,headers={}){const r=await fetch(base+path,{method,headers:{Cookie:cookie,...(method==='GET'?{}:{'Content-Type':'application/json',Origin:base,'X-CSRF-Token':data.csrf}),...headers},body:body===undefined?undefined:JSON.stringify(body)});return {status:r.status,data:await r.json(),headers:r.headers};}};try{await fn(ctx);}finally{server.closeAllConnections();await new Promise(r=>server.close(r));}}
@@ -11,8 +12,18 @@ const profile={eventId:'demo-madrid',name:'Taylor Demo',role:'Innovación',compa
 test('health/UI assets available with CSP and no real connectors',()=>withApp(async c=>{
  const h=await c.call('/health');assert.equal(h.status,200);assert.equal(h.data.realEmail,false);assert.equal(h.data.linkedinConfigured,false);
  const r=await fetch(c.base+'/');assert.equal(r.status,200);assert.match(r.headers.get('content-security-policy'),/frame-ancestors 'none'/);assert.doesNotMatch(r.headers.get('content-security-policy'),/unsafe-inline/);
- const html=await r.text();assert.match(html,/lang="es"/);assert.match(html,/LinkedIn no configurado/);assert.doesNotMatch(html,/Estado de preparación/);
+ const html=await r.text();assert.match(html,/lang="es"/);assert.match(html,/<title>Ulltra ·/);assert.ok(html.includes('<img src="/assets/ulltra-logo.png" alt="Ulltra" width="1120" height="360"'));assert.match(html,/LinkedIn no configurado/);assert.doesNotMatch(html,/Estado de preparación/);
  assert.equal((await fetch(c.base+'/app.js')).status,200);assert.equal((await fetch(c.base+'/styles.css')).status,200);
+}));
+test('Ulltra logos serve exact PNG assets under unchanged security headers',()=>withApp(async c=>{
+ for(const [file,width,height] of [['ulltra-logo.png',1120,360],['ulltra-logo-original.png',1600,800]]){
+  const r=await fetch(c.base+'/assets/'+file);assert.equal(r.status,200);assert.equal(r.headers.get('content-type'),'image/png');assert.equal(r.headers.get('x-content-type-options'),'nosniff');
+  assert.match(r.headers.get('content-security-policy'),/img-src 'self' data:/);assert.doesNotMatch(r.headers.get('content-security-policy'),/unsafe-inline/);
+  const png=Buffer.from(await r.arrayBuffer());assert.deepEqual(png,readFileSync(new URL('../web/assets/'+file,import.meta.url)));assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a');assert.equal(png.readUInt32BE(16),width);assert.equal(png.readUInt32BE(20),height);
+ }
+ for(const path of ['/assets/missing.png','/assets/..%2F..%2Fserver.mjs','/assets/%2e%2e%2f.git%2fconfig','/assets/ulltra-logo.png/extra','/web/assets/ulltra-logo.png'])assert.equal((await fetch(c.base+path)).status,404);
+ assert.equal((await fetch(c.base+'/assets/ulltra-logo.png',{method:'POST'})).status,404);
+ assert.equal((await fetch(c.base+'/assets/ulltra-logo.png',{headers:{Origin:'https://foreign.invalid'}})).status,403);
 }));
 test('bootstrap has 9 fictitious participants per event and no email/token identity leakage',()=>withApp(async c=>{
  assert.equal(c.data.events.length,2);for(const e of c.data.events)assert.equal(c.data.participants.filter(p=>p.eventId===e.id).length,9);

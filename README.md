@@ -1,6 +1,11 @@
-# ullraagents · demo local
+# Ulltra · demo local
+
+![Ulltra](web/assets/ulltra-logo.png)
 
 Matching explicable para eventos, interfaz en español y envío exclusivamente simulado.
+
+## Identidad visual
+El nombre visible es **Ulltra**; el repositorio conserva su nombre `ullraagents`. El [logo original aportado](web/assets/ulltra-logo-original.png) se conserva sin modificar (1600 × 800 px). La interfaz utiliza un [recorte del mismo logo](web/assets/ulltra-logo.png) de 1120 × 360 px, origen x=240/y=220, sin redibujado ni reescalado: elimina el margen para mantener la marca legible, con proporción original y texto alternativo «Ulltra». Solo estas dos rutas PNG se añaden a la lista cerrada de assets del servidor; la CSP no se relaja.
 
 ## Arrancar / parar
 Requiere Node.js con módulos ESM y node:test (verificado con Node 26). No requiere instalar dependencias.

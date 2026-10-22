@@ -7,7 +7,7 @@ import {DEFAULT_RULES,validateRules,rankCandidates} from './src/affinity.mjs';
 import {CATALOG,makeDemoData,matchingProfile} from './src/demo-data.mjs';
 import {censor,hasUnsafeInstruction} from './src/safety.mjs';
 const ROOT=dirname(fileURLToPath(import.meta.url));
-const assets=new Map([['/',['web/index.html','text/html; charset=utf-8']],['/app.js',['web/app.js','text/javascript; charset=utf-8']],['/styles.css',['web/styles.css','text/css; charset=utf-8']]]);
+const assets=new Map([['/',['web/index.html','text/html; charset=utf-8']],['/app.js',['web/app.js','text/javascript; charset=utf-8']],['/styles.css',['web/styles.css','text/css; charset=utf-8']],['/assets/ulltra-logo.png',['web/assets/ulltra-logo.png','image/png']],['/assets/ulltra-logo-original.png',['web/assets/ulltra-logo-original.png','image/png']]]);
 const documents=['PROPUESTA','REQUISITOS','ARQUITECTURA','SEGURIDAD','BACKLOG','PRUEBAS','DECISIONES','FORMULA','DEMO'];
 const codeError=(status,message)=>Object.assign(new Error(message),{status});
 function safeEqual(a,b){const x=Buffer.from(a??''),y=Buffer.from(b??'');return x.length===y.length&&timingSafeEqual(x,y);}
