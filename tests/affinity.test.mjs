@@ -12,7 +12,7 @@ test('weights total 100 and default rules are immutable',()=>{
 });
 test('perfect match: 100 score / 100 coverage, explains IDs',()=>{
   const r=scorePair(a,b); assert.equal(r.score,100); assert.equal(r.coverage,100); assert.equal(r.eligible,true);
-  assert.deepEqual(component(r,'offerToNeed').matched,['analytics','automation']); assert.equal(r.rulesVersion,'0.1.0');
+  assert.deepEqual(component(r,'offerToNeed').matched,['analytics','automation']); assert.equal(r.rulesVersion,'0.2.0');
 });
 test('partial example: 66.67, need coverage, two-way buyer and Jaccard',()=>{
   const r=scorePair(a,c); assert.equal(r.score,66.67); assert.equal(component(r,'offerToNeed').value,0.5);
@@ -26,6 +26,10 @@ test('missing interests are unknown, not mismatch: renormalize to 100 / 95 cover
 test('explicit non-overlap is observed zero, distinct from missing',()=>{
   const r=scorePair(a,{...b,interests:['music']}); assert.equal(r.score,95); assert.equal(r.coverage,100);
   assert.equal(component(r,'interests').state,'observed'); assert.equal(component(r,'interests').value,0);
+});
+test('buyer persona sector counts only when declared',()=>{
+  const r=scorePair({...a,buyerSectors:['retail']},{...b,sector:'cosmetics'}); assert.equal(component(r,'buyerFit').directions.aToB.value,0.5);
+  assert.equal(component(scorePair({...a,buyerSectors:['retail']},{...b,sector:'retail'}),'buyerFit').value,1);
 });
 test('missing buyer direction makes buyer component unknown, not implied 100%',()=>{
   const r=scorePair(a,{...b,buyerTypes:undefined}); assert.equal(component(r,'buyerFit').state,'missing'); assert.equal(r.coverage,80);

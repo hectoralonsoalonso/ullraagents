@@ -6,8 +6,13 @@
 3. Definimos la [fórmula v0.1](FORMULA.md): no bloquea ninguna calculadora adjunta.
 4. Usuario amplía alcance: demo web funcional ejecutándose solo en localhost, sin portal público ni envíos reales.
 
+## v0.2 (22/10/2026)
+Bandeja de emails por evento, extractor de publicaciones ficticias, sniper con evidencias, revisor independiente con 13 comprobaciones (duras/revisables), resolución humana de incidencias, envío simulado con `.eml` e idempotencia por persona y evento, persistencia en `runtime-data/`. Detalle en el [README](../README.md).
+
+Nota: la bandeja muestra un filtro por estado (OK/Incidencia/Enviado) de los emails de un evento; es la lista sobre la que se pulsa Enviar, no el apartado global de estado retirado del panel.
+
 ## Operar
-Desde la raíz: node server.mjs. Abrir http://127.0.0.1:4317. Cambiar puerto con PORT; detener con Ctrl+C. Estado volátil en memoria; reiniciar reinicia eventos, reglas, borradores y recibos. No hay autostart ni scheduler. El bind es 127.0.0.1, no 0.0.0.0. No convertirlo en servicio público.
+Desde la raíz: npm start. Abrir http://127.0.0.1:4317. Cambiar puerto con PORT; detener con Ctrl+C. Estado en runtime-data/ (fuera de Git); npm run reset o el botón «Restaurar datos de demo» lo reinician. No hay autostart ni scheduler. El bind es 127.0.0.1, no 0.0.0.0. No convertirlo en servicio público.
 
 Explorar evento → participante → calcular → generar borrador → revisar → simular envío manual. Probar doble clic/reintento devuelve la misma entrega lógica. Editar invalida OK; texto distinto del generado requiere regenerar porque el revisor demo no verifica afirmaciones libres. Cambiar reglas invalida revisiones. Una incidencia impide simular envío. Contactos ficticios viven en mapa separado y nunca en el perfil de matching, payload de bootstrap o evidencias.
 

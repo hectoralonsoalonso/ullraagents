@@ -8,30 +8,40 @@ Matching explicable para eventos, interfaz en español y envío exclusivamente s
 El nombre visible es **Ulltra**; el repositorio conserva su nombre `ullraagents`. El [logo original aportado](web/assets/ulltra-logo-original.png) se conserva sin modificar (1600 × 800 px). La interfaz utiliza un [recorte del mismo logo](web/assets/ulltra-logo.png) de 1120 × 360 px, origen x=240/y=220, sin redibujado ni reescalado: elimina el margen para mantener la marca legible, con proporción original y texto alternativo «Ulltra». Solo estas dos rutas PNG se añaden a la lista cerrada de assets del servidor; la CSP no se relaja.
 
 ## Arrancar / parar
-Requiere Node.js con módulos ESM y node:test (verificado con Node 26). No requiere instalar dependencias.
+Requiere Node.js 20+ (verificado con Node 26). Sin dependencias que instalar.
 
-    node server.mjs
+    npm start          # o: node server.mjs
+    npm test           # 41 pruebas + verificación de documentos
+    npm run reset      # borra runtime-data/ y vuelve a los datos de demo
 
-Abrir http://127.0.0.1:4317. Otro puerto: PORT=4318 node server.mjs.
-Parar: Ctrl+C en la terminal del servidor. Si se lanzó con el gestor de procesos de OpenClaw, detener solo esa sesión desde el gestor; no reiniciar el Gateway.
+Abrir http://127.0.0.1:4317. Otro puerto: `PORT=4318 npm start`. Sin persistencia: `PERSIST=0 npm start`.
+El estado (borradores, revisiones, envíos simulados) se guarda en `runtime-data/`, que está en `.gitignore`. Cada envío simulado deja un `.eml` en `runtime-data/outbox/`.
 
-## Qué funciona
-- Dos eventos y 18 asistentes ficticios, alta de eventos y participantes con catálogo cerrado.
-- Top 3 explicable con fórmula v0.1, cobertura, pesos editables y versiones.
-- Sniper/redactor por plantillas y evidencias sintéticas, no agentes LLM reales.
-- Revisor determinista, invalidación al editar/cambiar reglas, envío manual SIMULADO e idempotencia.
-- Filtro conservador DNI/NIE/IBAN y controles de API locales.
-- Propuesta accesible desde la interfaz. No hay apartado global de preparación/incidencias/envíos en el panel; sí revisión específica de cada borrador.
+## Flujo (v0.2)
+**Bandeja de emails → Preparar todos los emails** ejecuta, para cada asistente activo del evento:
 
-Todos los eventos, contactos @example.test, perfiles, empresas e intereses son ficticios. No hay SMTP, scraping, conexión LLM ni llamadas externas. Estado solo en memoria: reiniciar restaura la demo.
-**LinkedIn real no configurado**: ningún botón simula una autenticación real. El único dato real previsto será la identidad del operador por OIDC, cuando se configuren app, callback y credenciales por vía segura. No concederá acceso automático a publicaciones/cargo/empresa.
+1. **Extractor** ([src/extractor.mjs](src/extractor.mjs)): lee sus publicaciones ficticias de LinkedIn, detecta temas off-topic, aísla las que traen instrucciones maliciosas, enmascara DNI/NIE/IBAN e ignora las antiguas.
+2. **Calculadora de afinidad** ([src/affinity.mjs](src/affinity.mjs)): top 3 del mismo evento, explicable, con pesos versionados. Si no hay 3 válidos, no rellena.
+3. **Sniper de intereses** ([src/sniper.mjs](src/sniper.mjs)): 3 off-topic y 2 on-topic por persona recomendada, cada uno con su fuente (publicación o campo del formulario). Sin fuente → «Pregunta abierta», nunca un dato inventado.
+4. **Redactor** ([src/composer.mjs](src/composer.mjs)): email en texto plano para enviar el día anterior.
+5. **Revisor independiente** ([src/reviewer.mjs](src/reviewer.mjs)): vuelve a las fichas y publicaciones originales y comprueba 13 puntos (identidades, mezcla de personas/eventos, cantidades, evidencias, DNI/IBAN, contactos, instrucciones, reglas vigentes, ediciones). Resultado: **OK** o **Incidencia** con el motivo exacto.
 
-## Comprobaciones
-- node --test tests/*.test.mjs: pruebas reales de motor, API y controles demo.
-- node scripts/check-docs.mjs: documentos/enlaces y catálogo de 24 escenarios, no ejecución de todas las políticas futuras.
-- git diff --check.
+Después, vosotros: **editar** (re-revisa al guardar), **regenerar**, **resolver incidencia** (solo las revisables por una persona: menos de 3 matches o líneas editadas a mano; las de seguridad exigen regenerar) y **Enviar** (uno a uno o «Enviar todos los OK»). El envío vuelve a pasar el revisor, es idempotente (un email por persona y evento) y es SIMULADO.
+
+Cambiar criterios, dar de baja a alguien o añadir asistentes vuelve a revisar todos los borradores no enviados.
+
+## Datos ficticios incluidos
+Tres eventos (Madrid 10 asistentes, Bilbao 6, Valencia 3) con casos trampa a propósito: publicación con *prompt injection* (Javier Ruiz), IBAN en una publicación (Sergio Navarro), perfil sin publicaciones (Andrés Vidal), publicaciones caducadas (Carmen Iglesias), sector fuera de catálogo (Tomás Ortega), baja (Jon Arrieta) y un evento con menos de 3 candidatos (Valencia).
+
+Catálogos: los ~147 sectores de LinkedIn y los tipos de empresa Marca propia · Fabricante · Retail · Operador o distribuidor · Servicios · Sin clasificar ([src/catalog.mjs](src/catalog.mjs)).
+
+## Qué NO hace todavía
+- Agentes LLM: sniper y revisor son deterministas (reglas), intercambiables por modelos más adelante.
+- LinkedIn real (ni login OIDC ni extracción), SMTP real, despliegue público.
+
+Todos los eventos, contactos @example.test, perfiles, empresas y publicaciones son ficticios.
 
 ## Documentación
 [Propuesta](docs/PROPUESTA.md) · [Fórmula](docs/FORMULA.md) · [Demo y login](docs/DEMO.md) · [Requisitos](docs/REQUISITOS.md) · [Arquitectura](docs/ARQUITECTURA.md) · [Seguridad](docs/SEGURIDAD.md) · [Backlog](docs/BACKLOG.md) · [Pruebas](docs/PRUEBAS.md) · [Decisiones](docs/DECISIONES.md) · [Contribuir](CONTRIBUTING.md)
 
-La calculadora adjunta deja de ser dependencia: el usuario ha autorizado definir nuestra fórmula. Las cantidades 3 off-topic + 2 on-topic POR MATCH siguen siendo un supuesto visible y editable. No hay despliegue público ni publicación GitHub realizada por esta demo.
+La calculadora es nuestra fórmula ([v0.2](docs/FORMULA.md)). Las cantidades 3 off-topic + 2 on-topic POR PERSONA RECOMENDADA son un supuesto visible y editable en Criterios.

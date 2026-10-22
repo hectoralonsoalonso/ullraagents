@@ -1,0 +1,13 @@
+{
+  "name": "ullraagents",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Matching de asistentes a eventos con sniper de intereses, revisor independiente y envío manual. Demo local con datos ficticios.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test tests/ && node scripts/check-docs.mjs",
+    "reset": "rm -rf runtime-data"
+  }
+}

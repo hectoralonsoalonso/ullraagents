@@ -1,4 +1,6 @@
-# Fórmula de afinidad v0.1.0
+# Fórmula de afinidad v0.2.0
+
+Cambios respecto a v0.1: (1) el buyer persona admite sectores objetivo opcionales (`buyerSectors`): cada dirección vale la media de «tipo de empresa encaja» y «sector encaja» cuando ambos están declarados; si no, solo el tipo. (2) Afinidad mínima por defecto 30 (antes 35), calibrada con los datos ficticios para que eventos medianos lleguen a 3 recomendaciones. (3) Los intereses ya no se declaran: los obtiene el extractor de publicaciones utilizables (no antiguas, sin instrucciones maliciosas).
 
 Implementada en [motor](../src/affinity.mjs). Diseño inicial definido por nosotros por autorización del usuario, no derivado de una calculadora ausente. No es probabilidad de éxito ni modelo de compatibilidad personal. Todo el perfil de matching es sintético y excluye identidad/contacto.
 
@@ -20,7 +22,7 @@ Cada componente ausente se excluye del denominador, no se reemplaza por 0:
     cobertura = suma de pesos de componentes observados
     afinidad = 100 × suma(peso × componente observado) / cobertura
 
-Si cobertura=0 => score:null. Por defecto cobertura mínima=60 y afinidad mínima=35. Cobertura insuficiente => INSUFFICIENT_DATA aunque la puntuación parcial sea alta; puntuación observada baja => BELOW_THRESHOLD. Siempre mostrar puntuación JUNTO a cobertura. La renormalización puede elevar resultados con campos ausentes: la cobertura visible y su umbral evitan presentar esa cifra como certeza. Futuro: diferenciar “ninguna necesidad declarada” mediante un estado explícito, no reutilizar [].
+Si cobertura=0 => score:null. Por defecto cobertura mínima=60 y afinidad mínima=30. Cobertura insuficiente => INSUFFICIENT_DATA aunque la puntuación parcial sea alta; puntuación observada baja => BELOW_THRESHOLD. Siempre mostrar puntuación JUNTO a cobertura. La renormalización puede elevar resultados con campos ausentes: la cobertura visible y su umbral evitan presentar esa cifra como certeza. Futuro: diferenciar “ninguna necesidad declarada” mediante un estado explícito, no reutilizar [].
 
 ## Orden, límites y explicaciones
 Orden: score mostrado a dos decimales descendente, cobertura descendente, ID opaco lexicográfico ascendente. El umbral usa valor previo al redondeo. ID solo desempata, no aporta afinidad. Hasta tres candidatos elegibles; si faltan, incidencia INSUFFICIENT_MATCHES. Cada resultado conserva versión, componentes, peso, estado observado/ausente y coincidencias de catálogo. La recomendación es direccional (40/35), no necesariamente recíproca.
