@@ -1,0 +1,114 @@
+[
+  {
+    "id": "demo-a",
+    "eventId": "demo-madrid",
+    "status": "active",
+    "synthetic": true,
+    "offers": [
+      "automation",
+      "analytics"
+    ],
+    "needs": [
+      "security"
+    ],
+    "buyerTypes": [
+      "agency"
+    ],
+    "companyType": "software",
+    "interests": [
+      "running",
+      "books"
+    ]
+  },
+  {
+    "id": "demo-b",
+    "eventId": "demo-madrid",
+    "status": "active",
+    "synthetic": true,
+    "offers": [
+      "security"
+    ],
+    "needs": [
+      "automation",
+      "analytics"
+    ],
+    "buyerTypes": [
+      "software"
+    ],
+    "companyType": "agency",
+    "interests": [
+      "running",
+      "books"
+    ]
+  },
+  {
+    "id": "demo-c",
+    "eventId": "demo-madrid",
+    "status": "active",
+    "synthetic": true,
+    "offers": [
+      "security"
+    ],
+    "needs": [
+      "automation",
+      "design"
+    ],
+    "buyerTypes": [
+      "retail"
+    ],
+    "companyType": "agency",
+    "interests": [
+      "running",
+      "music"
+    ]
+  },
+  {
+    "id": "demo-d",
+    "eventId": "demo-madrid",
+    "status": "active",
+    "synthetic": true,
+    "offers": [
+      "security"
+    ],
+    "needs": [
+      "automation",
+      "analytics"
+    ],
+    "buyerTypes": [
+      "software"
+    ],
+    "companyType": "agency"
+  },
+  {
+    "id": "demo-e",
+    "eventId": "demo-madrid",
+    "status": "withdrawn",
+    "synthetic": true,
+    "offers": [
+      "security"
+    ],
+    "needs": [
+      "automation"
+    ],
+    "buyerTypes": [
+      "software"
+    ],
+    "companyType": "agency"
+  },
+  {
+    "id": "demo-f",
+    "eventId": "demo-bilbao",
+    "status": "active",
+    "synthetic": true,
+    "offers": [
+      "security"
+    ],
+    "needs": [
+      "automation"
+    ],
+    "buyerTypes": [
+      "software"
+    ],
+    "companyType": "agency"
+  }
+]

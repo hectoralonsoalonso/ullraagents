@@ -1,22 +1,32 @@
-# ullraagents
+# ullraagents · demo local
 
-Plataforma de matching para eventos: recomendaciones explicables, temas de conversación y emails revisados con envío humano.
+Matching explicable para eventos, interfaz en español y envío exclusivamente simulado.
 
-## Estado
-Arranque documental; no hay aplicación desplegada, extracción LinkedIn, calculadora implementada ni servicio de correo activo. Las pruebas de este repositorio verifican documentación y estructura de casos, no seguridad de una aplicación todavía inexistente.
+## Arrancar / parar
+Requiere Node.js con módulos ESM y node:test (verificado con Node 26). No requiere instalar dependencias.
+
+    node server.mjs
+
+Abrir http://127.0.0.1:4317. Otro puerto: PORT=4318 node server.mjs.
+Parar: Ctrl+C en la terminal del servidor. Si se lanzó con el gestor de procesos de OpenClaw, detener solo esa sesión desde el gestor; no reiniciar el Gateway.
+
+## Qué funciona
+- Dos eventos y 18 asistentes ficticios, alta de eventos y participantes con catálogo cerrado.
+- Top 3 explicable con fórmula v0.1, cobertura, pesos editables y versiones.
+- Sniper/redactor por plantillas y evidencias sintéticas, no agentes LLM reales.
+- Revisor determinista, invalidación al editar/cambiar reglas, envío manual SIMULADO e idempotencia.
+- Filtro conservador DNI/NIE/IBAN y controles de API locales.
+- Propuesta accesible desde la interfaz. No hay apartado global de preparación/incidencias/envíos en el panel; sí revisión específica de cada borrador.
+
+Todos los eventos, contactos @example.test, perfiles, empresas e intereses son ficticios. No hay SMTP, scraping, conexión LLM ni llamadas externas. Estado solo en memoria: reiniciar restaura la demo.
+**LinkedIn real no configurado**: ningún botón simula una autenticación real. El único dato real previsto será la identidad del operador por OIDC, cuando se configuren app, callback y credenciales por vía segura. No concederá acceso automático a publicaciones/cargo/empresa.
+
+## Comprobaciones
+- node --test tests/*.test.mjs: pruebas reales de motor, API y controles demo.
+- node scripts/check-docs.mjs: documentos/enlaces y catálogo de 24 escenarios, no ejecución de todas las políticas futuras.
+- git diff --check.
 
 ## Documentación
-- [Propuesta completa](docs/PROPUESTA.md)
-- [Fuentes y requisitos](docs/REQUISITOS.md)
-- [Arquitectura y contratos](docs/ARQUITECTURA.md)
-- [Seguridad y privacidad](docs/SEGURIDAD.md)
-- [Backlog](docs/BACKLOG.md)
-- [Harness y aceptación](docs/PRUEBAS.md)
-- [Decisiones pendientes](docs/DECISIONES.md)
-- [Guía de contribución](CONTRIBUTING.md)
+[Propuesta](docs/PROPUESTA.md) · [Fórmula](docs/FORMULA.md) · [Demo y login](docs/DEMO.md) · [Requisitos](docs/REQUISITOS.md) · [Arquitectura](docs/ARQUITECTURA.md) · [Seguridad](docs/SEGURIDAD.md) · [Backlog](docs/BACKLOG.md) · [Pruebas](docs/PRUEBAS.md) · [Decisiones](docs/DECISIONES.md) · [Contribuir](CONTRIBUTING.md)
 
-## Verificación local
-Con Node.js disponible, ejecutar `node scripts/check-docs.mjs`. No requiere instalar dependencias. Comprueba enlaces Markdown relativos, campos/IDs de escenarios y presencia de documentos. No ejecuta los escenarios funcionales.
-
-## Próximo paso
-Aportar e inspeccionar la calculadora; confirmar cantidades por match y fuentes/acceso LinkedIn; decidir stack mediante una ADR y empezar el vertical con datos sintéticos. Ningún dato real o secreto debe entrar en Git.
+La calculadora adjunta deja de ser dependencia: el usuario ha autorizado definir nuestra fórmula. Las cantidades 3 off-topic + 2 on-topic POR MATCH siguen siendo un supuesto visible y editable. No hay despliegue público ni publicación GitHub realizada por esta demo.

@@ -1,36 +1,28 @@
-# Arquitectura propuesta
+# Arquitectura: implementación local y evolución
 
-## Decisión de alcance
-Arranque documental sin framework elegido. Evaluar opciones existentes y mantenidas antes de construir cada integración; registrar stack, coste, licencia y motivo en ADR. No instalar infraestructura ni contratar servicios en esta fase.
+## Decisión reversible de demo
+Node.js built-in HTTP, ESM, crypto y node:test; frontend HTML/CSS/JS sin dependencias ni CDN. El usuario ha pedido montar la demo local; se evita elegir un framework o contratar servicios antes de validar el flujo. No es una decisión definitiva de stack de producción. Integración futura: revisar opciones mantenidas/OSS, licencias/coste/permisos y registrar ADR antes de adoptar.
 
-## Componentes
-- Panel de eventos y configuración versionada.
-- Ingesta y clasificador de catálogo cerrado.
-- Adaptador de fuentes: proveedor autorizado o datos aportados; no scraping supuesto.
-- Motor determinista de scoring a partir de calculadora pendiente.
-- Sniper y redactor con herramientas limitadas.
-- Censor determinista + comprobaciones contextuales.
-- Revisor con fuentes originales y salida estructurada.
-- Bandeja y autorización humana.
-- Servicio de envío único, bóveda de contactos y auditoría minimizada.
+## Implementado
+- [Servidor HTTP](../server.mjs): rutas cerradas, validación de entradas, sesiones locales, CSRF y datos en memoria.
+- [Motor puro](../src/affinity.mjs): reglas v0.1 y top 3 con explicación.
+- [Datos demo](../src/demo-data.mjs): dos eventos, 18 perfiles ficticios, contactos en Map separado y catálogo cerrado.
+- [Censor](../src/safety.mjs): filtro conservador e instrucciones sospechosas, sin ejecución de herramientas.
+- [Interfaz](../web/index.html): eventos, participantes, conexiones, ajustes, documentos; sin panel global de incidencias/envíos.
+- [Tests motor](../tests/affinity.test.mjs) y [tests HTTP](../tests/api.test.mjs).
 
-## Entidades y contratos conceptuales
-- Event: id, ciudad, fecha/hora, zona horaria, estado, rulesVersion.
-- Participant: id opaco, eventId, perfil profesional, ofrece/necesita/buyerPersona, dataStatus; **sin email**.
-- Contact: participantId, email, estado de contacto; repositorio de acceso separado.
-- Evidence: id, eventId, persona, fuente, fecha observada, fragmento mínimo, autorización/vigencia.
-- Match: eventId, A, B, score, scoreVersion, componentes y explicación verificable.
-- Topic: tipo off/on, modo hecho/pregunta, texto, evidenceIds o razón de fallback.
-- Draft: id, eventId, destinatario opaco, matches, contenido, revision/hash y policyVersion.
-- Review: draftRevision, OK/incidencia, códigos, fragmentos y evidencia.
-- SendAuthorization: actor humano autorizado, draftRevision, contacto/version, fecha.
-- Delivery: clave idempotente por evento/participante/edición, estado y recibo del proveedor.
+## API local
+GET /health (sin datos); GET /api/bootstrap (crea sesión local y token CSRF, datos sin emails); GET /api/matches?participantId=ID.
+POST /api/events; POST /api/participants (email ficticio en almacén separado); POST /api/rules (invalida revisión).
+POST /api/drafts; GET/PATCH /api/drafts/:id; POST /api/drafts/:id/review; POST /api/drafts/:id/send con confirm:true.
+POST/PATCH requieren cookie local + X-CSRF-Token + Origin exacto. Borrador vinculado a sesión local. Esto NO es autenticación de usuario real ni multitenancy productivo.
 
-Esto no es aún un contrato API implementado. Validar esquemas antes del vertical.
+Rutas estáticas y docs mediante allowlists, nunca convertir una URL recibida en ruta de disco arbitraria. Máximo 24 KB por body y límites de objetos de demo. CSP prohíbe scripts externos/inline y frames. No conexiones salientes de aplicación. LinkedIn real: no configurado, sin endpoint de identidad inventada.
 
-## Estados y reglas
-Preparando -> revisión -> OK o incidencia -> listo para clic humano -> enviando -> enviado/error/incierto.
-Cambio de contenido, destinatario, candidatos o política aplicable invalida revisión y autorización. Estado incierto de proveedor se reconcilia antes de reintentar; nunca reenviar a ciegas. Una incidencia no permite enviar. Un OK no permite enviar sin acción humana autenticada.
+## Contratos
+Participant público incluye nombre ficticio/cargo/empresa, sector, tipo y etiquetas; matchingProfile selecciona SOLO IDs opacos, evento, estado, synthetic y listas de catálogo. Contact contiene email @example.test y no sale en bootstrap/matching. Evidence tiene origen/fecha/IDs ficticios. Match tiene score, cobertura y componentes. Draft tiene revisión, baseline privado, reglas, contenido, evidencias y review. Baseline y propietario se excluyen de respuesta.
 
-## Operación
-El día anterior, preparar borradores según zona horaria del evento. Recurrencia futura irá en scheduler explícito, no un heartbeat ambiguo. No se configura ningún scheduler en este arranque. Idempotencia, colas y almacenamiento se decidirán en ADR. Aplicar revalidación de permisos y pertenencia en cada acceso, no confiar en filtros de UI.
+Revisión: pendiente → OK/incidencia. Editar elimina review; reglas nuevas invalidan review y obligan a regenerar. El envío simulado valida nuevamente revisión, versión, estado y candidatos. Recibo idempotente para la misma edición lógica; no tiene efecto SMTP. No hay scheduler ni almacenamiento de identidad, tokens o sesiones LinkedIn. Reiniciar borra estado demo.
+
+## Producción futura
+Separar bóveda real, autorización por organización/evento y herramientas de cada agente; persisted audit minimizada; extractor autorizado; sniper/redactor LLM; censor ampliado; revisor con fuentes originales; proveedor aislado de envío con aprobación humana. Login OIDC solo tras revisar librería mantenida, app/permisos/callback y validación de tokens. Nada está habilitado en la demo por describirlo aquí.

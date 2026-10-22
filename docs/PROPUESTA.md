@@ -1,48 +1,35 @@
-# Propuesta completa
+# Propuesta completa · demo local primero
 
-Estado: diseño para revisión; no representa funcionalidades implementadas. [Trazabilidad y origen](REQUISITOS.md).
+Alcance actualizado con las correcciones del usuario del 22 de octubre de 2026. [Trazabilidad](REQUISITOS.md). La demo funcional y la visión de producción son fases distintas.
 
-## Objetivo y salida
-Cada participante recibe el día anterior al evento un email con sus tres personas de mayor afinidad y motivos de conexión. Para cada recomendación se proponen tres rompehielos off-topic y dos temas on-topic. **La unidad «por recomendación» es un supuesto pendiente de confirmar**; el briefing confirma cantidades pero permite ambigüedad respecto al email completo.
+## Alcance actual
+Web local en español con datos inventados, dos eventos/ciudades y 18 asistentes ficticios iniciales. Creación de eventos y participantes, catálogo cerrado, matching top 3, explicación de puntuación/cobertura, ajustes versionados, borrador, revisión y envío exclusivamente SIMULADO. No se publica en Internet. Datos volátiles en memoria; no se recogen asistentes reales ni se conecta SMTP o un LLM.
 
-El objetivo de fecha no autoriza envíos automáticos. El sistema prepara y revisa; el equipo pulsa Enviar. Si no hay suficientes candidatos válidos o información fiable, se abre incidencia, sin inventar afinidad.
+El único dato real previsto es la identidad del operador a través de LinkedIn OIDC: pendiente de configuración, claramente indicado. No hay un login fake presentado como auténtico. Login no equivale a permiso para leer publicaciones/cargo/empresa. La demo usa evidencias fechadas ficticias, nunca scraping. Ver [demo y login](DEMO.md).
 
-## Interfaz y entradas
-Panel para múltiples eventos/ciudades, fecha y zona horaria, inscripciones, catálogos, reglas y bandeja de revisión. Formulario: LinkedIn, qué ofrece, retos/necesidades, buyer persona y correo. Enriquecimiento de nombre, apellidos, cargo y empresa; clasificación de sector y tipo de empresa únicamente contra catálogo proporcionado. Categoría no encontrada o dato contradictorio => revisión, no categoría inventada.
+## Panel y formulario
+Panel con eventos, participantes, explorar conexiones, criterios y propuesta. **Retirado el apartado global de estado de preparación/incidencias/envíos**. La revisión específica del borrador se conserva para respetar OK/incidencia + clic humano.
 
-LinkedIn es una dependencia por validar: no se presupone acceso a perfiles, publicaciones o republicaciones. Diseñar un adaptador autorizado y alternativa de aportación/confirmación manual. No comprometer calendario de implementación sin verificar acceso y condiciones aplicables.
+Formulario ficticio: nombre, cargo, empresa, sector y tipo de empresa de catálogo cerrado, ofrece, necesita/retos, buyer persona, intereses y correo @example.test. El campo profesional se introduce manualmente en esta demo; no se atribuye a LinkedIn. Correo aislado en mapa de contactos y ausente del perfil de matching y de bootstrap.
 
-## Flujo completo
-1. Crear evento y configurar reglas/versiones.
-2. Recoger inscripción y separar correo en bóveda.
-3. Extraer datos disponibles con procedencia y validar clasificación.
-4. Calcular afinidad con fórmula inspeccionada y versionada.
-5. Seleccionar hasta tres candidatos válidos; alertar si no se alcanza el objetivo.
-6. Sniper cruza intereses y evidencias de ambas personas.
-7. Redactor crea email con razones y temas.
-8. Censor y revisor contrastan fuentes originales y políticas.
-9. Bandeja muestra OK o incidencia, con justificación.
-10. Humano revisa y pulsa Enviar sobre versión concreta; servicio revalida y deduplica.
+En producción futura: inscripción con URL de LinkedIn y enriquecimiento solo si existe fuente autorizada y viable; clasificación sector/tipo contra catálogo del organizador, categoría desconocida => revisión. La extracción no está implementada en el mockup; sí los catálogos ficticios cerrados de sector, tipo y etiquetas.
 
 ## Matching
-La calculadora referenciada por el usuario será la base. Falta inspeccionar el archivo: no se fijan pesos, escalas, normalizaciones ni desempates definitivos. Separar restricciones excluyentes y preferencias; evaluar ofertas/necesidades y buyer persona según fórmula validada. Ausencia de dato no equivale a incompatibilidad. La recomendación puede ser direccional, no se impone reciprocidad.
+Ya no se espera una calculadora adjunta. Por autorización del usuario definimos y probamos la [fórmula v0.1](FORMULA.md): 40 oferta→necesidad del otro, 35 necesidad←oferta del otro, 20 encaje buyer persona, 5 intereses neutrales. Pesos suman 100, configurables. Se normaliza sobre datos observados, mostrando cobertura; desconocido no equivale a cero. Por defecto mínimo 60% de cobertura y 35 puntos. Elegibilidad: mismo evento, personas distintas y activas. Hasta tres válidos; faltantes generan incidencia, no relleno artificial.
 
-## Sniper de intereses
-Usar publicaciones y republicaciones disponibles y autorizadas; conservar fuente, fecha y respaldo mínimo para cada afirmación. Distinguir hecho declarado, conexión profesional posible y pregunta abierta. No inferir hechos sensibles ni afirmar intereses compartidos solo por una similitud débil. Si faltan datos, sugerir preguntas neutrales sin premisas: «¿Qué actividad te ayuda a desconectar del trabajo?»; nunca «Como a ambos os encanta correr» sin evidencia.
+## Sniper, redactor y evidencia
+Demo: plantillas deterministas, no agentes LLM. Cada pareja recibe preguntas sobre intereses marcados como ficticios o preguntas abiertas sin premisas, más temas profesionales sobre coincidencias de catálogo. Evidencias incluyen fecha fija de fixture 2026-10-22, IDs ficticios y origen “Formulario ficticio; no es LinkedIn”.
 
-## Temas profesionales y redacción
-Cruzar lo que ofrece y necesita cada persona y su buyer persona. Proponer conversaciones útiles sin prometer negocios. Redactor no introduce hechos nuevos. Cantidad, tono, longitud y estilo configurables; cambios trazables.
+Por defecto 3 off-topic y 2 on-topic POR MATCH: unidad aún no confirmada, visible como supuesto y editable de 1 a 5 por tipo. No inventar biografías, publicaciones, aficiones reales ni oportunidades comerciales. Producción futura podrá usar agentes separados con herramientas limitadas y evidencias originales autorizadas.
 
-## Revisor independiente
-Acceso al borrador, perfiles originales relevantes, evidencias y reglas. Comprobar identidad, pertenencia al evento, utilidad de la conexión, afirmaciones respaldadas, contradicciones, exposición de datos y cantidades. Salida estructurada: OK o incidencia, fragmento, razón y posible corrección. No dar OK únicamente porque coinciden dos agentes. Incidencia no resuelta bloquea envío; OK no es autorización de envío.
+## Revisor y envío
+Revisor determinista demo: contrasta versión de reglas, número de candidatos, pertenencia actual, número de temas, integridad del texto generado, filtro de identificadores e instrucciones sospechosas. Salida OK/incidencia con motivos. No es verificación semántica general: si el texto se edita, pierde OK y el revisor pide regenerar para no aprobar afirmaciones libres sin evidencia. Incidencia bloquea.
 
-## Configuración editable
-Catálogos, pesos cuando se conozcan, umbrales, restricciones, desempates, fuentes permitidas, antigüedad, temas excluidos, preguntas neutrales, plantillas, censor y criterios de OK. Separar alcance global/evento y roles. Versionar autor/fecha y simular antes de publicar. Cambios relevantes obligan a regenerar/revisar borradores afectados.
+El operador debe pulsar Simular envío y confirmar. No SMTP ni destinatario real; se registra recibo simulado e idempotente. Cambiar reglas o texto invalida revisión. Producción futura añadirá autenticación/roles reales, autorización humana sobre contenido/contacto, revalidación de bajas/cancelaciones, servicio de correo aislado y reconciliación de fallos parciales. Nada de eso se activa por preparar esta demo.
 
-## Bandeja de revisión y envío
-Mostrar destinatario solo a roles autorizados, matches, borrador, OK/incidencia y evidencias desplegables. Acciones: editar, regenerar, resolver incidencia, enviar. No permitir «resolver» saltándose una política: tras edición se reejecutan controles. Aprobación humana vinculada al contenido y destinatario exactos; cambios invalidan la revisión/aprobación. Revalidar baja, cancelación, evento, vigencia y censura al enviar. Clave de idempotencia y estados explícitos para reintentos/fallos parciales.
+## Configuración y seguridad
+Pesos, cobertura, umbral y cantidades se editan ya desde UI; cada guardado crea versión y fuerza regeneración. Catálogos, retención, políticas, estilo y permisos completos permanecen en backlog de producción. No se promete que todos los criterios empresariales sean editables todavía.
 
-## Seguridad, pruebas y lanzamiento
-Bóveda de correo separada; agentes sin acceso general a disco ni conectores; aislamiento de eventos en almacenamiento, búsquedas, cachés y exportaciones. Tickets y fuentes son datos no confiables. Censor de DNI/NIE, IBAN y reglas ampliables en salidas, trazas y exportaciones. Retención/borrado y accesos por definir antes de usar datos reales.
+HTTP solo 127.0.0.1; allowlist de hosts y recursos; CSP sin scripts inline; escape de contenido; cuerpo JSON limitado; validación de catálogo; sesión local/CSRF y verificación de origen para mutaciones. Censor conservador DNI/NIE/IBAN con bloqueo/redacción. No registra cuerpos ni credenciales. El marcador synthetic protege el contrato de demo, no prueba que un humano nunca escriba un nombre real; la UI exige datos ficticios.
 
-[Seguridad](SEGURIDAD.md) y [harness](PRUEBAS.md) concretan controles y pruebas. Fases: cerrar dependencias; eventos/formulario; matching; sniper/redactor/revisor; seguridad y harness; bandeja; piloto sin envío; piloto manual reducido. No hay despliegue público ni envío real autorizado por esta preparación.
+[Seguridad](SEGURIDAD.md), [pruebas](PRUEBAS.md) y [backlog](BACKLOG.md) distinguen implementación y pendientes. No afirmar cumplimiento o seguridad de producción por pasar tests locales.

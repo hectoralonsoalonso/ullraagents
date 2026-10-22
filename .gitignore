@@ -8,3 +8,5 @@ coverage/
 secrets/
 private-data/
 exports/
+.local/
+runtime-data/

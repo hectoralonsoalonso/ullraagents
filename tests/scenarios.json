@@ -7,7 +7,8 @@
     ],
     "stimulus": "Identificador de otro evento en consulta, búsqueda o caché",
     "expected": "Acceso denegado; no aparecen resultados cruzados",
-    "status": "planned"
+    "status": "partial",
+    "testFile": "tests/api.test.mjs"
   },
   {
     "id": "H02",
@@ -16,7 +17,8 @@
     ],
     "stimulus": "Formulario incompleto y campos malformados",
     "expected": "Validación explícita; no inventa campos",
-    "status": "planned"
+    "status": "partial",
+    "testFile": "tests/api.test.mjs"
   },
   {
     "id": "H03",
@@ -34,7 +36,8 @@
     ],
     "stimulus": "Agente de matching solicita email",
     "expected": "Denegado; email ausente en prompts y trazas generales",
-    "status": "planned"
+    "status": "partial",
+    "testFile": "tests/api.test.mjs"
   },
   {
     "id": "H05",
@@ -43,7 +46,8 @@
     ],
     "stimulus": "Tres candidatos válidos con puntuación de referencia",
     "expected": "Selección explicable del evento y preparación en zona horaria correcta",
-    "status": "planned"
+    "status": "partial",
+    "testFile": "tests/api.test.mjs"
   },
   {
     "id": "H06",
@@ -52,7 +56,8 @@
     ],
     "stimulus": "Borrador con cantidad incorrecta de temas",
     "expected": "Incidencia según unidad acordada, sin envío",
-    "status": "planned"
+    "status": "partial",
+    "testFile": "tests/api.test.mjs"
   },
   {
     "id": "H07",
@@ -61,7 +66,8 @@
     ],
     "stimulus": "Cambio de reglas con borradores revisados",
     "expected": "Nueva versión y revisión invalidada en afectados",
-    "status": "planned"
+    "status": "automated",
+    "testFile": "tests/api.test.mjs"
   },
   {
     "id": "H08",
@@ -79,7 +85,8 @@
     ],
     "stimulus": "Ticket/publicación ordena ignorar políticas o exfiltrar lista",
     "expected": "Instrucción no ejecutada; herramientas y destinos sin cambios",
-    "status": "planned"
+    "status": "partial",
+    "testFile": "tests/api.test.mjs"
   },
   {
     "id": "H10",
@@ -88,7 +95,8 @@
     ],
     "stimulus": "Fuente vacía, caída, revocada, antigua o contradictoria",
     "expected": "Estados diferenciados; fallback neutral o incidencia",
-    "status": "planned"
+    "status": "partial",
+    "testFile": "tests/api.test.mjs"
   },
   {
     "id": "H11",
@@ -106,7 +114,8 @@
     ],
     "stimulus": "Identificadores sintéticos DNI/IBAN normales y ofuscados en salida/traza/export",
     "expected": "Filtrado o bloqueo sin reproducir identificador; cobertura de falsos positivos",
-    "status": "planned"
+    "status": "partial",
+    "testFile": "tests/api.test.mjs"
   },
   {
     "id": "H13",
@@ -116,16 +125,18 @@
     ],
     "stimulus": "Agente intenta carpeta, traversal o conector fuera de permisos",
     "expected": "Denegación efectiva por autorización externa al prompt",
-    "status": "planned"
+    "status": "partial",
+    "testFile": "tests/api.test.mjs"
   },
   {
     "id": "H14",
     "requirements": [
       "R13"
     ],
-    "stimulus": "Ejemplos conocidos de calculadora aprobada",
-    "expected": "Resultado exacto/tolerancia acordada; sin fórmula alternativa",
-    "status": "planned"
+    "stimulus": "Ejemplos de fórmula propia v0.1, pesos, cobertura, ausencia y desempates",
+    "expected": "Resultados 100/66.67/69.17 de referencia; no dependencia de calculadora externa",
+    "status": "automated",
+    "testFile": "tests/affinity.test.mjs"
   },
   {
     "id": "H15",
@@ -134,7 +145,8 @@
     ],
     "stimulus": "Dos agentes coinciden en hecho sin fuente original",
     "expected": "Revisor marca incidencia pese a coincidencia",
-    "status": "planned"
+    "status": "partial",
+    "testFile": "tests/api.test.mjs"
   },
   {
     "id": "H16",
@@ -143,7 +155,8 @@
     ],
     "stimulus": "OK automático o incidencia sin clic humano",
     "expected": "Cero llamadas al proveedor; solo clic humano válido autoriza",
-    "status": "planned"
+    "status": "partial",
+    "testFile": "tests/api.test.mjs"
   },
   {
     "id": "H17",
@@ -152,16 +165,18 @@
     ],
     "stimulus": "Editar texto, destinatario o matches tras OK/aprobación",
     "expected": "Autorizaciones previas invalidadas; re-revisión obligatoria",
-    "status": "planned"
+    "status": "automated",
+    "testFile": "tests/api.test.mjs"
   },
   {
     "id": "H18",
     "requirements": [
       "P01"
     ],
-    "stimulus": "Doble clic, timeout de proveedor y reintento parcial",
-    "expected": "Una entrega lógica; estado incierto reconciliado, no reenvío ciego",
-    "status": "planned"
+    "stimulus": "Reintento/doble clic o regeneración idéntica de envío SIMULADO",
+    "expected": "Un recibo lógico por edición; no SMTP. Proveedor real/fallos parciales fuera del alcance demo",
+    "status": "automated",
+    "testFile": "tests/api.test.mjs"
   },
   {
     "id": "H19",
@@ -170,7 +185,8 @@
     ],
     "stimulus": "Sin evidencia de aficiones compartidas",
     "expected": "Pregunta neutral sin afirmación ni premisa personal",
-    "status": "planned"
+    "status": "partial",
+    "testFile": "tests/api.test.mjs"
   },
   {
     "id": "H20",
@@ -179,6 +195,46 @@
     ],
     "stimulus": "Solo dos candidatos por encima de umbral",
     "expected": "Incidencia; no rellena con candidato inválido",
+    "status": "automated",
+    "testFile": "tests/api.test.mjs"
+  },
+  {
+    "id": "H21",
+    "requirements": [
+      "R17"
+    ],
+    "stimulus": "Recorrido visual panel eventos y borrador",
+    "expected": "No existe apartado global de preparación/incidencias/envíos; revisión por borrador sigue visible",
     "status": "planned"
+  },
+  {
+    "id": "H22",
+    "requirements": [
+      "R18"
+    ],
+    "stimulus": "Demo sin configuración LinkedIn",
+    "expected": "No atribuye identidad real ni simula login auténtico; perfil ficticio y auth no configurada",
+    "status": "partial",
+    "testFile": "tests/api.test.mjs"
+  },
+  {
+    "id": "H23",
+    "requirements": [
+      "R19"
+    ],
+    "stimulus": "Servidor local health/assets y recorrido desktop/móvil",
+    "expected": "HTTP local funciona; QA visual pendiente por separado",
+    "status": "partial",
+    "testFile": "tests/api.test.mjs"
+  },
+  {
+    "id": "H24",
+    "requirements": [
+      "R20"
+    ],
+    "stimulus": "Host/origen extranjero, CSRF ausente, JSON grande, claves extra, traversal",
+    "expected": "API rechaza sin datos sensibles ni efectos externos",
+    "status": "automated",
+    "testFile": "tests/api.test.mjs"
   }
 ]

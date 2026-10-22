@@ -1,9 +1,9 @@
 # Contribuir
 
-Trabajar en ramas con pull requests y cambios pequeños. No hacer force-push ni merge sin revisión acordada. En repositorio vacío, la rama de arranque podrá ser el primer commit disponible; no asumir que existe main remota.
+Trabajar en ramas, cambios pequeños y pull requests cuando haya acceso remoto. No force-push ni merge sin revisión acordada. Inspeccionar remoto antes de inicializar rama base vacía.
 
-Antes de código: leer docs/REQUISITOS.md y docs/DECISIONES.md; registrar ADR de stack. Nunca inventar fórmula ni presumir acceso a LinkedIn.
+Leer [requisitos](docs/REQUISITOS.md), [decisiones](docs/DECISIONES.md) y [demo](docs/DEMO.md). Fórmula definida por el proyecto con autorización del usuario; modificar con versión y pruebas, no con pesos ocultos en prompts. No presumir acceso LinkedIn.
 
-Antes de PR: ejecutar node scripts/check-docs.mjs y git diff --check; revisar cambios por secretos y datos personales. Esas comprobaciones no sustituyen el harness funcional pendiente. No subir .env, perfiles o contactos reales, calculadoras con PII ni dumps.
+Antes de commit: node --test tests/*.test.mjs; node scripts/check-docs.mjs; git diff --check. Revisar secretos y datos personales. No subir .env, tokens, identidad real, perfiles/contactos reales ni dumps. Fixtures y correos solo sintéticos. No añadir dependencias/servicios de producción sin evaluar alternativas y documentar ADR.
 
-No activar despliegues, schedulers o email por añadir documentación. Mantener separación entre propuesto, implementado y verificado.
+Se permite ejecutar demo local 127.0.0.1 sin SMTP. No activar autostart, schedulers, exposición pública o envío real implícitamente. Mantener distinción entre implementado, probado y propuesto; batería planificada no equivale a pruebas ejecutadas.

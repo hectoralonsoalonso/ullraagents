@@ -1,17 +1,19 @@
-# Decisiones y dependencias
+# Decisiones y dependencias actuales
 
-## Pendientes bloqueantes por fase
-1. **Calculadora**: obtener archivo e inspeccionar entradas/fórmula/pesos/normalización/desempates; bloquea scoring definitivo, no documentación.
-2. **Cantidades**: confirmar 3 off-topic + 2 on-topic por match o por email. Tres personas recomendadas sí está confirmado.
-3. **LinkedIn**: verificar acceso autorizado y viable a perfiles/publicaciones/republicaciones, condiciones y alternativa manual; no prometer capacidades.
-4. **Catálogos**: aportar sector/tipo y tratamiento de no clasificados.
-5. **Stack e infraestructura**: evaluar soluciones existentes/OSS, costes y mantenimiento; propuesta mediante ADR antes de adoptar; ningún servicio de pago sin permiso.
-6. **Roles y datos**: aprobación de política de privacidad, retención y permisos, reutilización entre eventos.
-7. **Operación**: hora de preparación del día anterior, zona horaria, alertas, proveedor de email y gestión de bajas.
-8. **Calidad**: conjunto de referencia humano y umbrales de aceptación de recomendaciones/temas.
+## Resuelto por las correcciones del usuario
+- **Calculadora**: deja de ser dependencia. El usuario autoriza definir nuestra fórmula. v0.1 implementada y probada; pesos iniciales propuestos, modificables y sujetos a validación de utilidad.
+- **Datos de mockup**: inventados. No usar perfiles/publicaciones reales. Solo identidad real futura del operador por login LinkedIn.
+- **UI**: quitar apartado global “Estado de preparación, incidencias y envíos”; mantener revisión específica y envío manual simulado.
+- **Ejecución**: demo funcional desplegada en localhost, sin portal público, SMTP o agentes externos. Node built-in sin dependencias como opción reversible para validar el flujo.
 
-## Adoptado como propuesta del bootstrap
-Separar correo, cálculo determinista, preguntas sin inventar hechos, revisor con fuentes, versionado e invalidación de aprobación, envío humano y deduplicación. Requiere implementación y pruebas; no confundir documentación con control efectivo.
+## Pendientes por fase
+1. Cantidades: confirmar si 3 off-topic + 2 on-topic son por match o por email. Demo usa por match, visible y editable.
+2. Login real: aplicación LinkedIn OIDC, client ID, callback autorizado y secreto configurado por vía segura. No solicitar secreto en chat ni almacenar en Git. No bloquea explorar la demo ficticia; sí bloquea demostrar login auténtico.
+3. Calidad: revisar fórmula con organizador y conjunto sintético de referencia; no hay calibración comercial validada.
+4. Producción: catálogo sector/tipo real, autorización de fuentes (si se requieren), datos/retención/roles, stack e infraestructura mediante ADR, proveedor de correo y operación del día anterior.
+5. GitHub: publicación pendiente de autenticación. No forzar push ni crear/mezclar main sin revisar remoto. Trabajo local en rama bootstrap.
+
+No presentar login OIDC como permiso de publicaciones o verificación de identidad civil. No reintroducir calculadora como bloqueo por textos históricos del briefing. Ningún servicio de pago, despliegue público, scheduler o envío real está autorizado por esta demo.
 
 ## Plantilla ADR
-Contexto; opciones existentes; mantenimiento/licencia/coste; riesgos y permisos; decisión; alternativas descartadas; reversibilidad; verificación; estado (propuesta/aceptada/sustituida).
+Contexto; opciones existentes; mantenimiento/licencia/coste; riesgos y permisos; decisión; alternativas descartadas; reversibilidad; verificación; estado propuesta/aceptada/sustituida.
